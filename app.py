@@ -90,33 +90,10 @@ for i in range(0, len(cords), 2):
 
 df = pd.DataFrame(passes)
 
-# ==========================
-# Metrics
-# ==========================
-goal_x, goal_y = 120, 40
-
-df["dist_inicio"] = np.sqrt((goal_x - df.x_start)**2 + (goal_y - df.y_start)**2)
-df["dist_fim"] = np.sqrt((goal_x - df.x_end)**2 + (goal_y - df.y_end)**2)
-
-df["ganho"] = df["dist_inicio"] - df["dist_fim"]
-
-df["progressivo"] = df["ganho"] >= 10
-
 # A pass is considered successful if it is "certo" or an "assist"
 df["certo"] = df["label"].isin(["certo", "assist"])
 df["errado"] = df["label"] == "errado"
 df["assist"] = df["label"] == "assist"
-
-# ==========================
-# Classifications
-# ==========================
-df["direita"] = df["x_end"] > df["x_start"]
-df["esquerda"] = df["x_end"] < df["x_start"]
-
-df["proprio_campo"] = df["x_start"] < 60
-df["campo_adversario"] = df["x_start"] >= 60
-
-df["ultimo_terco"] = df["x_end"] >= 80
 
 # ==========================
 # Plot
@@ -134,15 +111,15 @@ ax.axvline(x=80, color='#FFD54F', linewidth=1.5, alpha=0.25)
 
 for _, row in df.iterrows():
 
-    # Subtle colors setup
+    # Stronger colors setup
     if row["label"] == "errado":
-        color = (0.9, 0.4, 0.4, 0.6)  # Subtle light red
-        width = 1.6
+        color = (0.85, 0.2, 0.2, 0.85)  # Stronger red
+        width = 1.8
     elif row["label"] == "assist":
-        color = (0.4, 0.6, 1.0, 0.9)  # Subtle light blue
+        color = (0.1, 0.5, 0.9, 0.95)  # Stronger blue
         width = 2.5
     else:  # "certo"
-        color = (0.4, 0.8, 0.4, 0.7)  # Subtle light green
+        color = (0.2, 0.75, 0.2, 0.85)  # Stronger green
         width = 1.8
 
     pitch.arrows(
@@ -167,9 +144,9 @@ ax.text(60, 86, "Attack Direction", ha='center', va='center',
 # Legend
 # ==========================
 legend_elements = [
-    Line2D([0], [0], color=(0.4, 0.8, 0.4, 0.7), lw=3, label='Successful Pass'),
-    Line2D([0], [0], color=(0.9, 0.4, 0.4, 0.6), lw=3, label='Unsuccessful Pass'),
-    Line2D([0], [0], color=(0.4, 0.6, 1.0, 0.9), lw=3, label='Assist'),
+    Line2D([0], [0], color=(0.2, 0.75, 0.2, 0.85), lw=3, label='Successful Pass'),
+    Line2D([0], [0], color=(0.85, 0.2, 0.2, 0.85), lw=3, label='Unsuccessful Pass'),
+    Line2D([0], [0], color=(0.1, 0.5, 0.9, 0.95), lw=3, label='Assist'),
 ]
 
 ax.legend(
@@ -199,26 +176,6 @@ passes_errados = df["errado"].sum()
 total_assists = df["assist"].sum()
 perc_certos = passes_certos / total * 100 if total > 0 else 0
 
-prog = df[df["progressivo"]]
-prog_total = len(prog)
-prog_certos = prog["certo"].sum()
-perc_prog = prog_total / total * 100 if total > 0 else 0
-
-passes_direita = df["direita"].sum()
-passes_esquerda = df["esquerda"].sum()
-
-ultimo_terco_certos = df[df["ultimo_terco"] & df["certo"]].shape[0]
-
-pc = df[df["proprio_campo"]]
-pc_certos = pc["certo"].sum()
-pc_errados = pc["errado"].sum()
-pc_perc = pc_certos / len(pc) * 100 if len(pc) > 0 else 0
-
-ca = df[df["campo_adversario"]]
-ca_certos = ca["certo"].sum()
-ca_errados = ca["errado"].sum()
-ca_perc = ca_certos / len(ca) * 100 if len(ca) > 0 else 0
-
 # ==========================
 # Dashboard Layout
 # ==========================
@@ -226,30 +183,9 @@ st.subheader("📊 Pass Statistics")
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Total Passes", total)
-col2.metric("% Accuracy", f"{perc_certos:.1f}%")
-col3.metric("Progressive Passes", prog_total)
-col4.metric("% Progressive", f"{perc_prog:.1f}%")
+col1.metric("Successful Passes", passes_certos)
+col2.metric("Unsuccessful Passes", passes_errados)
+col3.metric("% Accuracy", f"{perc_certos:.1f}%")
+col4.metric("Assists", total_assists)
 
 st.divider()
-
-col5, col6, col7, col8 = st.columns(4)
-
-col5.metric("→ Right", passes_direita)
-col6.metric("← Left", passes_esquerda)
-col7.metric("Final Third Passes", ultimo_terco_certos)
-col8.metric("Assists", total_assists)  # Added metric for Assists
-
-st.divider()
-
-col9, col10 = st.columns(2)
-
-with col9:
-    st.markdown("### Own Field")
-    st.metric("% Accuracy", f"{pc_perc:.1f}%")
-    st.write(f"Acc: {pc_certos} | Inacc: {pc_errados}")
-
-with col10:
-    st.markdown("### Opponent Field")
-    st.metric("% Accuracy", f"{ca_perc:.1f}%")
-    st.write(f"Acc: {ca_certos} | Inacc: {ca_errados}")
